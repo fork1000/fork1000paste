@@ -26,6 +26,11 @@
     <script>
         const SUPABASE_URL = 'SUPABASE_URL_PLACEHOLDER';
         const SUPABASE_ANON_KEY = 'SUPABASE_ANON_KEY_PLACEHOLDER';
+
+        if (SUPABASE_URL === 'SUPABASE_URL_PLACEHOLDER' || SUPABASE_ANON_KEY === 'SUPABASE_ANON_KEY_PLACEHOLDER') {
+            alert("DEPLOYMENT ERROR: GitHub Actions did not inject your secret keys. Check your GitHub repository settings under Secrets.");
+        }
+
         const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         const pasteContent = document.getElementById('paste-content');
@@ -53,6 +58,9 @@
                         pasteContent.value = data.content;
                         rawUrlInput.value = window.location.href;
                     }
+                })
+                .catch(err => {
+                    alert("Load Error: " + err.message);
                 });
         }
 
@@ -66,25 +74,37 @@
             uploadBtn.disabled = true;
             uploadBtn.innerText = "Uploading...";
 
-            const { data, error } = await supabase
-                .from('pastes')
-                .insert([{ content: textToUpload }])
-                .select()
-                .then(res => {
-                    if (res.data && res.data.length > 0) return { data: res.data[0], error: null };
-                    return { data: null, error: res.error || new Error("No data returned") };
-                });
+            try {
+                const { data, error } = await supabase
+                    .from('pastes')
+                    .insert([{ content: textToUpload }])
+                    .select('id')
+                    .single();
 
-            if (error) {
-                alert("Upload failed: " + error.message);
-                uploadBtn.disabled = false;
-                uploadBtn.innerText = "Upload Paste";
-            } else {
+                if (error) {
+                    alert("Database Error: " + error.message);
+                    uploadBtn.disabled = false;
+                    uploadBtn.innerText = "Upload Paste";
+                    return;
+                }
+
+                if (!data) {
+                    alert("Database Error: No data returned from server.");
+                    uploadBtn.disabled = false;
+                    uploadBtn.innerText = "Upload Paste";
+                    return;
+                }
+
                 const generatedUrl = `${window.location.origin}${window.location.pathname}?id=${data.id}`;
                 rawUrlInput.value = generatedUrl;
                 
                 uploadBtn.innerText = "Uploaded!";
                 pasteContent.readOnly = true;
+
+            } catch (err) {
+                alert("Application Crash: " + err.message);
+                uploadBtn.disabled = false;
+                uploadBtn.innerText = "Upload Paste";
             }
         });
 
