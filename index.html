@@ -50,7 +50,6 @@
                     if (error || !data) {
                         pasteContent.value = "Error: Paste not found or deleted.";
                     } else {
-                        pasteContent.textContent = data.content;
                         pasteContent.value = data.content;
                         rawUrlInput.value = window.location.href;
                     }
@@ -70,8 +69,11 @@
             const { data, error } = await supabase
                 .from('pastes')
                 .insert([{ content: textToUpload }])
-                .select('id')
-                .single();
+                .select()
+                .then(res => {
+                    if (res.data && res.data.length > 0) return { data: res.data[0], error: null };
+                    return { data: null, error: res.error || new Error("No data returned") };
+                });
 
             if (error) {
                 alert("Upload failed: " + error.message);
