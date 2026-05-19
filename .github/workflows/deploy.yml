@@ -22,8 +22,8 @@ jobs:
 
       - name: Inject Supabase Secrets
         run: |
-          sed -i "s|SUPABASE_URL_PLACEHOLDER|${{ secrets.SUPABASE_URL }}|g" index.html
-          sed -i "s|SUPABASE_ANON_KEY_PLACEHOLDER|${{ secrets.SUPABASE_ANON_KEY }}|g" index.html
+          sed -i "s#SUPABASE_URL_PLACEHOLDER#${{ secrets.SUPABASE_URL }}#g" index.html
+          sed -i "s#SUPABASE_ANON_KEY_PLACEHOLDER#${{ secrets.SUPABASE_ANON_KEY }}#g" index.html
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
