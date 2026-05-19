@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; connect-src SUPABASE_URL_PLACEHOLDER;">
+    <title>fork1000paste</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+    <header>
+        <h1><a href="." style="text-decoration: none; color: inherit;">fork1000paste</a></h1>
+    </header>
+
+    <main>
+        <form id="paste-form">
+            <textarea id="paste-content" rows="15" cols="60" placeholder="Paste your text or code here..."></textarea>
+            <br><br>
+            
+            <button type="button" id="upload-btn">Upload Paste</button>
+            <input type="text" id="raw-url" size="50" readonly placeholder="Link will appear here after upload">
+            <button type="button" id="copy-btn">Copy Link</button>
+        </form>
+    </main>
+
+    <script>
+        const SUPABASE_URL = 'SUPABASE_URL_PLACEHOLDER';
+        const SUPABASE_ANON_KEY = 'SUPABASE_ANON_KEY_PLACEHOLDER';
+        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        const pasteContent = document.getElementById('paste-content');
+        const uploadBtn = document.getElementById('upload-btn');
+        const rawUrlInput = document.getElementById('raw-url');
+        const copyBtn = document.getElementById('copy-btn');
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const pasteId = urlParams.get('id');
+
+        if (pasteId) {
+            pasteContent.placeholder = "Loading paste content...";
+            pasteContent.readOnly = true;
+            uploadBtn.disabled = true;
+
+            supabase
+                .from('pastes')
+                .select('content')
+                .eq('id', pasteId)
+                .single()
+                .then(({ data, error }) => {
+                    if (error || !data) {
+                        pasteContent.value = "Error: Paste not found or deleted.";
+                    } else {
+                        pasteContent.textContent = data.content;
+                        pasteContent.value = data.content;
+                        rawUrlInput.value = window.location.href;
+                    }
+                });
+        }
+
+        uploadBtn.addEventListener('click', async () => {
+            const textToUpload = pasteContent.value.trim();
+            if (!textToUpload) {
+                alert("Please enter some text before uploading.");
+                return;
+            }
+
+            uploadBtn.disabled = true;
+            uploadBtn.innerText = "Uploading...";
+
+            const { data, error } = await supabase
+                .from('pastes')
+                .insert([{ content: textToUpload }])
+                .select('id')
+                .single();
+
+            if (error) {
+                alert("Upload failed: " + error.message);
+                uploadBtn.disabled = false;
+                uploadBtn.innerText = "Upload Paste";
+            } else {
+                const generatedUrl = `${window.location.origin}${window.location.pathname}?id=${data.id}`;
+                rawUrlInput.value = generatedUrl;
+                
+                uploadBtn.innerText = "Uploaded!";
+                pasteContent.readOnly = true;
+            }
+        });
+
+        copyBtn.addEventListener('click', () => {
+            if (!rawUrlInput.value) {
+                alert("Nothing to copy yet. Upload a paste first!");
+                return;
+            }
+            
+            navigator.clipboard.writeText(rawUrlInput.value)
+                .then(() => {
+                    const originalText = copyBtn.innerText;
+                    copyBtn.innerText = "Copied!";
+                    setTimeout(() => copyBtn.innerText = originalText, 2000);
+                })
+                .catch(err => {
+                    alert("Failed to copy link automatically. Please manually copy the text in the box.");
+                });
+        });
+    </script>
+
+</body>
+</html>
