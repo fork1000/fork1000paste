@@ -31,7 +31,7 @@
             alert("DEPLOYMENT ERROR: GitHub Actions did not inject your secret keys. Check your GitHub repository settings under Secrets.");
         }
 
-        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         const pasteContent = document.getElementById('paste-content');
         const uploadBtn = document.getElementById('upload-btn');
@@ -46,7 +46,7 @@
             pasteContent.readOnly = true;
             uploadBtn.disabled = true;
 
-            supabase
+            supabaseClient
                 .from('pastes')
                 .select('content')
                 .eq('id', pasteId)
@@ -75,7 +75,7 @@
             uploadBtn.innerText = "Uploading...";
 
             try {
-                const { data, error } = await supabase
+                const { data, error } = await supabaseClient
                     .from('pastes')
                     .insert([{ content: textToUpload }])
                     .select('id')
